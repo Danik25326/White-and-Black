@@ -1,0 +1,647 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="light dark">
+<meta name="theme-color" content="#000000">
+<title>Біле і Чорне — три світи твого стану</title>
+<meta name="description" content="Інтерактивний простір, де можна бути собою. Обери Чорне, Біле або відкрий Сіре, знайшовши баланс.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%AB%80%3C/text%3E%3C/svg%3E">
+<style>
+:root { --background: #050505; --foreground: #f1eee8; font-synthesis: none; }
+* { box-sizing: border-box; }
+html, body { width: 100%; height: 100%; overflow: hidden; overscroll-behavior: none; }
+body { margin: 0; background: #050505; color: var(--foreground); font-family: Arial, Helvetica, sans-serif; }
+button { font: inherit; }
+.heart-world { position: relative; width: 100vw; height: 100dvh; overflow: hidden; background: #050505; }
+.heart-canvas { display: block; width: 100%; height: 100%; touch-action: none; cursor: grab; user-select: none; -webkit-user-select: none; outline: none; }
+.heart-canvas.is-grabbed { cursor: grabbing; }
+.heart-canvas:focus-visible { outline: 1px solid rgba(255,255,255,.5); outline-offset: -3px; }
+.sound-control { position: fixed; z-index: 2; top: calc(14px + env(safe-area-inset-top, 0px)); right: 14px; width: 34px; height: 34px; padding: 6px; border: 0; background: transparent; color: white; opacity: .28; cursor: pointer; mix-blend-mode: difference; transition: opacity .2s ease; }
+.sound-control:hover, .sound-control:focus-visible { opacity: .8; }
+.sound-control svg { width: 100%; height: 100%; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+@media (prefers-reduced-motion: reduce) { .sound-control { transition: none; } }
+
+.world { position: fixed; inset: 0; z-index: 1; display: flex; flex-direction: column; align-items: center; justify-content: flex-start; gap: 36px; padding: 48px 20px; overflow: auto; opacity: 0; pointer-events: none; transition: opacity 1.8s ease; }
+.world.on { opacity: 1; pointer-events: auto; }
+.world.white { color: #111; --line: rgba(0,0,0,.14); }
+.world.black { color: #e8e6e1; --line: rgba(255,255,255,.14); }
+.world-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 14px; width: min(960px, 100%); }
+.card { display: block; padding: 34px 22px; border: 1px solid var(--line); border-radius: 14px; color: inherit; text-decoration: none; font-size: 15px; letter-spacing: .04em; transition: transform .3s ease, border-color .3s ease; }
+.card:hover, .card:focus-visible { transform: translateY(-3px); border-color: currentColor; outline: none; }
+.back { width: 52px; height: 52px; padding: 0; border: 0; background: none; cursor: pointer; animation: pulse 1.2s ease-in-out infinite; }
+.back svg { width: 100%; height: 100%; }
+@keyframes pulse { 0%, 100% { transform: scale(1); } 12% { transform: scale(1.18); } 26% { transform: scale(1.06); } }
+.world.gray { color: #eceef0; --line: rgba(255,255,255,.2); }
+.world-body { display: flex; flex-direction: column; gap: 30px; width: min(960px, 100%); margin: auto; }
+.cat { margin: 0 0 12px; font-size: 12px; font-weight: 400; letter-spacing: .22em; text-transform: uppercase; opacity: .6; }
+.feed { display: flex; flex-direction: column; border-top: 1px solid var(--line); }
+.item { display: flex; justify-content: space-between; gap: 16px; padding: 14px 4px; border-bottom: 1px solid var(--line); color: inherit; text-decoration: none; font-size: 15px; line-height: 1.35; transition: opacity .2s; }
+.item:hover, .item:focus-visible { opacity: .6; outline: none; }
+.item .m { flex: none; font-size: 12px; opacity: .55; white-space: nowrap; padding-top: 2px; }
+.tracks { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 12px; }
+.track { display: flex; gap: 12px; align-items: center; padding: 10px; border: 1px solid var(--line); border-radius: 14px; background: none; color: inherit; font: inherit; text-align: left; cursor: pointer; }
+.track.on { border-color: currentColor; }
+.track img { width: 48px; height: 48px; border-radius: 8px; object-fit: cover; flex: none; background: var(--line); }
+.track b { display: block; font-size: 14px; font-weight: 500; line-height: 1.25; }
+.track small { opacity: .6; font-size: 12px; }
+.dim { opacity: .5; font-size: 14px; padding: 14px 4px; }
+
+.world-body { width: min(920px, 100%); gap: 64px; padding-block: 24px; }
+.cat { font-family: Georgia, 'Times New Roman', serif; font-style: italic; font-size: 28px; letter-spacing: 0; text-transform: none; opacity: .9; margin-bottom: 18px; }
+.feed { border-top: 0; }
+.item { display: grid; grid-template-columns: 40px 1fr auto; align-items: baseline; gap: 14px; padding: 20px 6px; opacity: 1; animation: rise .9s cubic-bezier(.2,.7,.2,1) both; animation-delay: calc(var(--i) * 90ms); transition: transform .4s cubic-bezier(.2,.7,.2,1), background .4s; }
+.item:hover, .item:focus-visible { opacity: 1; transform: translateX(8px); }
+.item .num { font-family: Georgia, serif; font-size: 13px; opacity: .4; }
+.item .t { font-family: Georgia, 'Times New Roman', serif; font-size: clamp(17px, 2.4vw, 22px); line-height: 1.3; }
+.item .s { margin-top: 6px; font-size: 13px; line-height: 1.55; opacity: .55; }
+.item .m { padding-top: 0; }
+.track { animation: rise .9s cubic-bezier(.2,.7,.2,1) both; animation-delay: calc(var(--i) * 70ms); transition: transform .35s, background .35s; backdrop-filter: blur(6px); }
+.track:hover { transform: translateY(-3px); }
+.track.on { background: var(--line); }
+.track img { width: 56px; height: 56px; border-radius: 10px; }
+.skel { height: 20px; margin: 22px 6px; border-radius: 10px; background: linear-gradient(90deg, var(--line), transparent, var(--line)); background-size: 200% 100%; animation: sh 1.6s linear infinite; }
+@keyframes rise { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: none; } }
+@keyframes sh { to { background-position: -200% 0; } }
+
+.world.black .cat { font-family: 'Courier New', monospace; font-style: normal; font-size: 13px; letter-spacing: .32em; text-transform: uppercase; }
+.world.black .item .t { font-family: 'Courier New', monospace; font-size: clamp(15px, 2vw, 18px); }
+.world.black .item:hover { transform: translateX(-8px); }
+.world.gray .item .t { font-weight: 300; letter-spacing: .01em; }
+.world.white .card { border-radius: 22px; }
+</style>
+</head>
+<body>
+<main class="heart-world">
+  <canvas id="c" class="heart-canvas" tabindex="0" aria-label="Інтерактивне живе серце у чорно-білому світі"></canvas>
+  <button id="snd" class="sound-control" aria-label="Вимкнути звук" aria-pressed="true">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9v6h4l5 4V5L8 9H4Z"/><g id="waves"><path d="M16.5 9a4 4 0 0 1 0 6"/><path d="M19 6.5a8 8 0 0 1 0 11"/></g></svg>
+  </button>
+</main>
+<section id="world" class="world" aria-hidden="true">
+  <div id="grid" class="world-body"></div>
+  <button id="back" class="back" aria-label="Повернутися до серця"><svg viewBox="0 0 32 32" aria-hidden="true"><path fill="#d0102a" d="M16 29C6 21 2 15 2 10a7 7 0 0 1 14-2 7 7 0 0 1 14 2c0 5-4 11-14 19z"/></svg></button>
+</section>
+<script>
+(() => {
+  const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+  const lerp = (a, b, t) => a + (b - a) * t;
+  const canvas = document.getElementById('c');
+  const ctx = canvas.getContext('2d');
+  const sndBtn = document.getElementById('snd');
+  const waves = document.getElementById('waves');
+  let soundEnabled = true;
+
+  let width = 0, height = 0, pixelRatio = 1;
+  let heartX = 0, heartY = 0, pointerX = 0, pointerY = 0, offsetX = 0, offsetY = 0;
+  let lastTime = performance.now(), elapsed = 0;
+  let held = false, pointerId = null;
+  let lift = 0, tone = 0, driftVelocity = 0, open = 0, centerTime = 0, beatPhase = 0, heldAmount = 0;
+  let audio = null, droneGain = null, secondBeat = false, particles = [];
+  let mode = 'hub', corner = 0, leaveT = 0, leaveDir = 0, worldKind = 'white', ws = null;
+  const worldEl = document.getElementById('world'), gridEl = document.getElementById('grid');
+  // ВМІСТ СВІТІВ: сюди додавай свої сайти, статті й музику
+  const gn = (q) => `https://news.google.com/search?q=${encodeURIComponent(q)}&hl=uk&gl=UA&ceid=UA:uk`;
+  const yt = (q) => `https://www.youtube.com/results?search_query=${encodeURIComponent(q)}`;
+  const gs = (q) => `https://www.google.com/search?q=${encodeURIComponent(q)}&hl=uk&lr=lang_uk`;
+  const WORLDS = {
+    white: [
+      { cat: 'Новини', items: [{ title: 'Добрі новини', url: gn('добрі новини OR перемога OR допомога OR відкриття') }, { title: 'Українці творять', url: gn('українці створили OR відкрили OR стали першими') }] },
+      { cat: 'Статті', items: [{ title: 'Ukrainer', url: 'https://ukrainer.net' }, { title: 'Історії успіху', url: gs('історії успіху українців') }, { title: 'Натхнення', url: gs('мотивація натхнення стаття українською') }] },
+      { cat: 'Музика', items: [{ title: 'Весела музика', url: yt('українська весела музика') }, { title: 'Позитивні хіти', url: yt('українська позитивна музика') }, { title: 'Танцювальна', url: yt('українська танцювальна музика') }] }
+    ],
+    black: [
+      { cat: 'Новини', items: [{ title: 'Самотність', url: gn('самотність OR вигорання') }, { title: 'Біль і втрата', url: gn('втрата OR біль OR депресія') }] },
+      { cat: 'Статті', items: [{ title: 'Сповіді', url: gs('сповідь самотність вигорання особиста історія') }, { title: 'Про депресію', url: gs('як я пережив депресію історія') }] },
+      { cat: 'Музика', items: [{ title: 'Сумна музика', url: yt('українська сумна музика') }, { title: 'Dark phonk', url: yt('dark phonk українською') }, { title: 'Важкий вайб', url: yt('українська важка депресивна музика') }] }
+    ],
+    gray: [
+      { cat: 'Новини', items: [{ title: 'Суспільне', url: 'https://suspilne.media' }, { title: 'Українська правда', url: 'https://www.pravda.com.ua' }, { title: 'Укрінформ', url: 'https://www.ukrinform.ua' }, { title: 'BBC Україна', url: 'https://www.bbc.com/ukrainian' }] },
+      { cat: 'Статті', items: [{ title: 'Читомо', url: 'https://chytomo.com' }, { title: 'Збруч', url: 'https://zbruc.eu' }, { title: 'Вікіпедія', url: 'https://uk.wikipedia.org' }, { title: 'Локальна історія', url: 'https://localhistory.org.ua' }] },
+      { cat: 'Тиша', items: [{ title: 'Ембієнт', url: yt('ембієнт для спокою') }, { title: 'Дощ і вітер', url: yt('звук дощу для спокою') }, { title: 'Космос', url: yt('космос документальний українською') }, { title: 'Природа Карпат', url: yt('природа Карпат відео') }] }
+    ]
+  };
+
+  const radius = () => Math.max(34, Math.min(width, height) * 0.075);
+
+  function resize() {
+    pixelRatio = Math.min(window.devicePixelRatio || 1, 2);
+    width = window.innerWidth; height = window.innerHeight;
+    canvas.width = Math.round(width * pixelRatio);
+    canvas.height = Math.round(height * pixelRatio);
+    ctx.setTransform(pixelRatio, 0, 0, pixelRatio, 0, 0);
+    if (!heartX || !heartY) {
+      heartX = width * (0.12 + Math.random() * 0.76);
+      heartY = height * (0.35 + Math.random() * 0.4);
+      pointerX = heartX; pointerY = heartY;
+    }
+    particles = Array.from({ length: 130 }, () => ({
+      x: Math.random() * width, y: Math.random() * height,
+      r: 0.6 + Math.random() * 2, speed: 0.3 + Math.random(), phase: Math.random() * Math.PI * 2
+    }));
+  }
+
+  function startAudio() {
+    if (audio) return;
+    try {
+      audio = new (window.AudioContext || window.webkitAudioContext)();
+      const gain = audio.createGain();
+      gain.gain.value = 0;
+      gain.connect(audio.destination);
+      for (const f of [55, 82.4]) {
+        const o = audio.createOscillator();
+        o.frequency.value = f; o.connect(gain); o.start();
+      }
+      droneGain = gain;
+    } catch (e) { audio = null; }
+  }
+
+  function thump(frequency, volume) {
+    if (!audio || !soundEnabled) return;
+    const o = audio.createOscillator(), g = audio.createGain(), now = audio.currentTime;
+    o.frequency.setValueAtTime(frequency * 1.8, now);
+    o.frequency.exponentialRampToValueAtTime(frequency * 0.5, now + 0.18);
+    g.gain.setValueAtTime(0, now);
+    g.gain.linearRampToValueAtTime(volume, now + 0.015);
+    g.gain.exponentialRampToValueAtTime(0.001, now + 0.22);
+    o.connect(g); g.connect(audio.destination);
+    o.start(now); o.stop(now + 0.25);
+  }
+
+  const pointerPosition = (e) => {
+    const b = canvas.getBoundingClientRect();
+    return [e.clientX - b.left, e.clientY - b.top];
+  };
+  const wake = () => { startAudio(); if (audio && audio.state === 'suspended') audio.resume(); };
+
+  canvas.addEventListener('pointerdown', (e) => {
+    const [x, y] = pointerPosition(e);
+    if (Math.hypot(x - heartX, y - heartY) > radius() * 1.8) return;
+    held = true; pointerId = e.pointerId;
+    offsetX = heartX - x; offsetY = heartY - y;
+    pointerX = x; pointerY = y;
+    canvas.classList.add('is-grabbed');
+    canvas.setPointerCapture(e.pointerId);
+    wake();
+  });
+  canvas.addEventListener('pointermove', (e) => {
+    if (!held || pointerId !== e.pointerId) return;
+    [pointerX, pointerY] = pointerPosition(e);
+  });
+  const release = (e) => {
+    if (mode !== 'hub' || pointerId !== e.pointerId) return;
+    held = false; pointerId = null;
+    canvas.classList.remove('is-grabbed');
+  };
+  canvas.addEventListener('pointerup', release);
+  canvas.addEventListener('pointercancel', release);
+
+  // керування стрілками
+  const arrows = ['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'];
+  canvas.addEventListener('keydown', (e) => {
+    if (mode !== 'hub') return;
+    const step = e.shiftKey ? 18 : 8;
+    if (e.key === 'ArrowLeft') heartX -= step;
+    else if (e.key === 'ArrowRight') heartX += step;
+    else if (e.key === 'ArrowUp') heartY -= step;
+    else if (e.key === 'ArrowDown') heartY += step;
+    else return;
+    e.preventDefault();
+    held = true;
+    canvas.classList.add('is-grabbed');
+    wake();
+  });
+  canvas.addEventListener('keyup', (e) => {
+    if (mode !== 'hub' || !arrows.includes(e.key)) return;
+    held = false;
+    canvas.classList.remove('is-grabbed');
+  });
+
+  sndBtn.addEventListener('click', () => {
+    soundEnabled = !soundEnabled;
+    sndBtn.setAttribute('aria-pressed', String(soundEnabled));
+    sndBtn.setAttribute('aria-label', soundEnabled ? 'Вимкнути звук' : 'Увімкнути звук');
+    waves.style.display = soundEnabled ? '' : 'none';
+  });
+
+  function heartPath(cx, cy, r) {
+    ctx.beginPath();
+    for (let i = 0; i <= 64; i++) {
+      const a = (i / 64) * Math.PI * 2;
+      const x = 16 * Math.pow(Math.sin(a), 3);
+      const y = -(13 * Math.cos(a) - 5 * Math.cos(2 * a) - 2 * Math.cos(3 * a) - Math.cos(4 * a));
+      const px = cx + x * (r / 16), py = cy + y * (r / 16);
+      i === 0 ? ctx.moveTo(px, py) : ctx.lineTo(px, py);
+    }
+    ctx.closePath();
+  }
+
+  function note(f, v, d) {
+    if (!audio || !soundEnabled) return;
+    const o = audio.createOscillator(), g = audio.createGain(), t = audio.currentTime;
+    o.type = 'triangle'; o.frequency.value = f;
+    g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(v, t + 0.04); g.gain.exponentialRampToValueAtTime(0.001, t + d);
+    o.connect(g); g.connect(audio.destination); o.start(t); o.stop(t + d + 0.05);
+  }
+  function startWorldSound(kind) {
+    stopWorldSound();
+    if (!audio) return;
+    if (kind === 'gray') { if (droneGain) droneGain.gain.value = 0.06; return; }
+    ws = { timers: [], nodes: [] };
+    if (kind === 'white') {
+      const scale = [523, 587, 659, 784, 880, 1047];
+      ws.timers.push(setInterval(() => note(scale[Math.floor(Math.random() * scale.length)], 0.05, 1.6), 480));
+    } else {
+      const o = audio.createOscillator(), f = audio.createBiquadFilter(), g = audio.createGain();
+      o.type = 'sawtooth'; o.frequency.value = 46; f.type = 'lowpass'; f.frequency.value = 150; g.gain.value = 0.09;
+      o.connect(f); f.connect(g); g.connect(audio.destination); o.start();
+      ws.nodes.push(o, g);
+      ws.timers.push(setInterval(() => { thump(48, 0.7); setTimeout(() => thump(42, 0.4), 260); }, 1000));
+    }
+  }
+  function stopWorldSound() {
+    if (!ws) return;
+    ws.timers.forEach(clearInterval);
+    try { ws.nodes[0] && ws.nodes[0].stop(); ws.nodes[1] && ws.nodes[1].disconnect(); } catch (e) {}
+    ws = null;
+  }
+  // ===== живі стрічки: ТІЛЬКИ українські джерела (RSS) =====
+  const SRC = {
+    sus: { name: 'Суспільне', rss: 'https://suspilne.media/rss/all.rss', home: 'https://suspilne.media' },
+    uin: { name: 'Укрінформ', rss: 'https://www.ukrinform.ua/rss/block-lastnews', home: 'https://www.ukrinform.ua' },
+    upn: { name: 'Українська правда', rss: 'https://www.pravda.com.ua/rss/view_news/', home: 'https://www.pravda.com.ua' },
+    upa: { name: 'Українська правда', rss: 'https://www.pravda.com.ua/rss/view_articles/', home: 'https://www.pravda.com.ua' },
+    tsn: { name: 'ТСН', rss: 'https://tsn.ua/rss/full.rss', home: 'https://tsn.ua' },
+    hro: { name: 'Громадське', rss: 'https://hromadske.ua/rss', home: 'https://hromadske.ua' },
+    ukr: { name: 'Ukrainer', rss: 'https://ukrainer.net/feed/', home: 'https://ukrainer.net' },
+    chy: { name: 'Читомо', rss: 'https://chytomo.com/feed/', home: 'https://chytomo.com' },
+    lif: { name: 'УП. Життя', rss: 'https://life.pravda.com.ua/rss/', home: 'https://life.pravda.com.ua' }
+  };
+  // настрій = ключові слова в заголовку/описі + які джерела + які виконавці
+  const MOODS = {
+    white: { re: /перемог|врятув|рекорд|відкри|допомог|подарув|свято|нагород|успіх|створи|запуст|повернул|добр|натхн|діти|мрі|усміх|фестивал|концерт|мистецтв/i, news: ['sus', 'uin', 'upn', 'tsn'], stories: ['ukr', 'lif', 'chy', 'upa'], artists: ['Go_A', 'KAZKA', 'Tvorchi', 'Alyona Alyona', 'Jerry Heil', 'The Hardkiss'] },
+    black: { re: /загин|втрат|трагед|смерт|помер|поховал|жертв|поранен|обстріл|горе|сумн|самотн|вигоран|депрес|біль|зникл|катастроф|пожеж|вбив|памʼят|пам'ят/i, news: ['sus', 'uin', 'upn', 'tsn', 'hro'], stories: ['ukr', 'lif', 'chy', 'upa'], artists: ['Скрябін', 'Христина Соловій', 'Latexfauna', 'Один в каное', 'Артем Пивоваров', 'Pianoboy'] },
+    gray: { re: /наук|космос|природ|філософ|історі|дослідж|книг|культур|еколог|заповідник|тварин|астроном|лісів|гори|карпат/i, news: ['sus', 'uin', 'upn', 'hro'], stories: ['ukr', 'chy', 'lif', 'upa'], artists: ['ДахаБраха', 'Vivienne Mort', 'Тінь Сонця', 'Океан Ельзи', 'Антитіла'] }
+  };
+  Object.assign(MOODS.white, { titles: ['Світло', 'Добрі історії', 'Звучить'], tiles: {
+    news: [['Перемоги', 'перемога OR рекорд'], ['Врятували', 'врятували OR допомогли'], ['Відкриття', 'відкрили OR запустили OR створили']],
+    stories: [['Успіх', 'історія успіху'], ['Люди', 'українці які змінюють світ'], ['Мрії', 'втілили мрію']],
+    music: [['Весела музика', 'українська весела музика'], ['Танцювальна', 'українська танцювальна музика'], ['Нові хіти', 'нова українська позитивна пісня']] } });
+  Object.assign(MOODS.black, { titles: ['Тиша й біль', 'Сповіді', 'Важкий звук'], tiles: {
+    news: [['Втрата', 'втрата OR загинули OR памʼять'], ['Самотність', 'самотність'], ['Вигорання', 'вигорання OR депресія']],
+    stories: [['Сповіді', 'сповідь самотність'], ['Про біль', 'історія про біль і втрату'], ['Безсоння', 'безсоння тривога']],
+    music: [['Сумна музика', 'українська сумна пісня'], ['Dark phonk', 'dark phonk українською'], ['Меланхолія', 'українська меланхолійна музика']] } });
+  Object.assign(MOODS.gray, { titles: ['Спокій', 'Споглядання', 'Фон'], tiles: {
+    news: [['Космос', 'космос OR астрономія'], ['Природа', 'природа OR Карпати'], ['Наука', 'наука OR дослідження']],
+    stories: [['Стоїцизм', 'стоїцизм'], ['Тиша', 'тиша і спокій'], ['Філософія', 'філософія']],
+    music: [['Ембієнт', 'ембієнт для спокою'], ['Дощ', 'звук дощу'], ['Lo-fi', 'lo-fi українська']] } });
+  let curKind = 'white';
+  const SITES = '(site:suspilne.media OR site:pravda.com.ua OR site:ukrinform.ua OR site:ukrainer.net OR site:chytomo.com OR site:tsn.ua)';
+  const enc = encodeURIComponent, cache = {};
+  let player = null, playingBtn = null;
+  const strip = (h) => new DOMParser().parseFromString(h || '', 'text/html').body.textContent.replace(/\s+/g, ' ').trim();
+  function ago(d) {
+    const m = Math.max(1, Math.round((Date.now() - d) / 60000));
+    return m < 60 ? m + ' хв' : m < 1440 ? Math.round(m / 60) + ' год' : Math.round(m / 1440) + ' дн';
+  }
+  async function fetchFeed(key) {
+    const c = cache[key];
+    if (c && Date.now() - c.t < 300000) return c.v;
+    const src = SRC[key];
+    let items = [];
+    try {
+      const j = await (await fetch('https://api.rss2json.com/v1/api.json?rss_url=' + enc(src.rss))).json();
+      if (j.status === 'ok') items = j.items.map(i => ({ title: strip(i.title), snippet: strip(i.description).slice(0, 150), url: i.link, date: new Date(String(i.pubDate).replace(' ', 'T') + 'Z') }));
+    } catch (e) {}
+    if (!items.length) {
+      for (const proxy of ['https://api.allorigins.win/raw?url=', 'https://api.codetabs.com/v1/proxy?quest=']) {
+        try {
+          const xml = await (await fetch(proxy + enc(src.rss))).text();
+          const doc = new DOMParser().parseFromString(xml, 'text/xml');
+          items = [...doc.querySelectorAll('item')].map(n => ({ title: strip(n.querySelector('title')?.textContent), snippet: strip(n.querySelector('description')?.textContent).slice(0, 150), url: n.querySelector('link')?.textContent || '', date: new Date(n.querySelector('pubDate')?.textContent || Date.now()) }));
+          if (items.length) break;
+        } catch (e) {}
+      }
+    }
+    items.forEach(i => i.source = src.name);
+    if (items.length) cache[key] = { t: Date.now(), v: items };
+    return items;
+  }
+  async function loadFeeds(keys, re, limit) {
+    const all = (await Promise.all(keys.map(fetchFeed))).flat().filter(i => i.title && i.url);
+    all.sort((a, b) => b.date - a.date);
+    const match = all.filter(i => re.test(i.title + ' ' + i.snippet));
+    const rest = all.filter(i => !match.includes(i));
+    const seen = new Set(), out = [];
+    for (const i of [...match, ...rest]) { if (seen.has(i.title)) continue; seen.add(i.title); out.push(i); if (out.length >= limit) break; }
+    return out;
+  }
+  async function getTracks(artists) {
+    const key = 't:' + artists.join('|');
+    if (cache[key] && Date.now() - cache[key].t < 300000) return cache[key].v;
+    const all = [];
+    await Promise.all(artists.map(async (a) => {
+      try {
+        const j = await (await fetch(`https://itunes.apple.com/search?term=${enc(a)}&country=UA&media=music&entity=song&attribute=artistTerm&limit=8`)).json();
+        all.push(...j.results.filter(r => r.previewUrl));
+      } catch (e) {}
+    }));
+    const seen = new Set(), v = [];
+    for (const r of all.sort((a, b) => new Date(b.releaseDate) - new Date(a.releaseDate))) {
+      if (seen.has(r.trackName)) continue;
+      seen.add(r.trackName); v.push(r);
+    }
+    const top = v.slice(0, 8);
+    if (top.length) cache[key] = { t: Date.now(), v: top };
+    return top;
+  }
+  function section(title, child) {
+    const box = document.createElement('div'), h = document.createElement('h2');
+    h.className = 'cat'; h.textContent = title; box.appendChild(h); box.appendChild(child);
+    return box;
+  }
+  const skeleton = (n) => '<div class="skel"></div>'.repeat(n);
+  const empty = (box) => { box.innerHTML = '<div class="dim">Стрічка оживе на хостингу (разом із папкою api)</div>'; };
+  function renderItems(feed, items) {
+    feed.innerHTML = '';
+    if (!items || !items.length) return empty(feed);
+    items.forEach((it, n) => {
+      const a = document.createElement('a'), num = document.createElement('span'), body = document.createElement('div'), t = document.createElement('div'), sn = document.createElement('div'), m = document.createElement('span');
+      a.className = 'item'; a.href = it.url; a.target = '_blank'; a.rel = 'noopener noreferrer'; a.style.setProperty('--i', n);
+      num.className = 'num'; num.textContent = String(n + 1).padStart(2, '0');
+      t.className = 't'; t.textContent = it.title; sn.className = 's'; sn.textContent = it.snippet || '';
+      m.className = 'm'; m.textContent = it.source + ' · ' + ago(new Date(it.date));
+      body.appendChild(t); if (it.snippet) body.appendChild(sn);
+      a.appendChild(num); a.appendChild(body); a.appendChild(m); feed.appendChild(a);
+    });
+  }
+  function renderTracks(box, list) {
+    box.innerHTML = '';
+    if (!list || !list.length) return empty(box);
+    list.forEach((r, n) => {
+      const b = document.createElement('button'), img = document.createElement('img'), d = document.createElement('div'), nm = document.createElement('b'), ar = document.createElement('small');
+      b.className = 'track'; b.style.setProperty('--i', n); img.src = r.artworkUrl100; img.alt = '';
+      nm.textContent = r.trackName; ar.textContent = r.artistName;
+      d.appendChild(nm); d.appendChild(ar); b.appendChild(img); b.appendChild(d);
+      b.addEventListener('click', () => {
+        const same = playingBtn === b;
+        if (player) { player.pause(); player = null; }
+        if (playingBtn) playingBtn.classList.remove('on');
+        playingBtn = null;
+        if (same) return;
+        stopWorldSound();
+        player = new Audio(r.previewUrl); player.play().catch(() => {});
+        player.onended = () => b.classList.remove('on');
+        b.classList.add('on'); playingBtn = b;
+      });
+      box.appendChild(b);
+    });
+  }
+  // спершу власний сервер (/api/mood), потім спроба напряму з браузера
+  async function getMood(kind) {
+    const c = cache['m:' + kind];
+    if (c && Date.now() - c.t < 300000) return c.v;
+    let d = null;
+    try { const r = await fetch('/api/mood?kind=' + kind); if (r.ok) d = await r.json(); } catch (e) {}
+    if (!d || !(d.news && d.news.length)) {
+      const m = MOODS[kind];
+      const [news, stories, tracks] = await Promise.all([loadFeeds(m.news, m.re, 8), loadFeeds(m.stories, m.re, 8), getTracks(m.artists)]);
+      d = { news, stories, tracks };
+    }
+    if (d.news.length || d.tracks.length) cache['m:' + kind] = { t: Date.now(), v: d };
+    return d;
+  }
+  function liveSections(kind) {
+    curKind = kind;
+    const m = MOODS[kind];
+    const nf = document.createElement('div'), sf = document.createElement('div'), tb = document.createElement('div');
+    nf.className = sf.className = 'feed'; tb.className = 'tracks';
+    nf.innerHTML = sf.innerHTML = tb.innerHTML = skeleton(4);
+    gridEl.appendChild(section(m.titles[0], nf));
+    gridEl.appendChild(section(m.titles[1], sf));
+    gridEl.appendChild(section(m.titles[2], tb));
+    getMood(kind).then((d) => { renderItems(nf, d.news); renderItems(sf, d.stories); renderTracks(tb, d.tracks); });
+  }
+
+  function enterWorld(kind) {
+    mode = 'world'; worldKind = kind;
+    gridEl.innerHTML = '';
+    liveSections(kind);
+    worldEl.className = 'world ' + kind + ' on';
+    worldEl.setAttribute('aria-hidden', 'false');
+    startWorldSound(kind);
+  }
+  function exitWorld() {
+    if (mode !== 'world') return;
+    if (player) { player.pause(); player = null; playingBtn = null; }
+    stopWorldSound();
+    worldEl.className = 'world ' + worldKind;
+    worldEl.setAttribute('aria-hidden', 'true');
+    heartX = width / 2; heartY = height / 2; pointerX = heartX; pointerY = heartY;
+    held = false; pointerId = null; canvas.classList.remove('is-grabbed');
+    lift = 0; tone = 0; open = 0; centerTime = 0; corner = 0; leaveT = 0; driftVelocity = 0; heldAmount = 0;
+    mode = 'hub';
+  }
+  document.getElementById('back').addEventListener('click', exitWorld);
+  window.addEventListener('keydown', (e) => { if (e.key === 'Escape') exitWorld(); });
+
+  function grayField(x0, x1) {
+    const g = ctx.createLinearGradient(0, 0, 0, height);
+    g.addColorStop(0, '#5d5e61'); g.addColorStop(1, '#34353a');
+    ctx.fillStyle = g; ctx.fillRect(x0, 0, x1 - x0, height);
+    ctx.save(); ctx.beginPath(); ctx.rect(x0, 0, x1 - x0, height); ctx.clip();
+    for (let i = 0; i < 5; i++) {
+      const fx = width * (0.5 + 0.4 * Math.sin(elapsed * 0.07 + i * 1.9));
+      const fy = height * (0.3 + 0.5 * ((i * 0.37) % 1)) + Math.sin(elapsed * 0.1 + i) * 40;
+      const fog = ctx.createRadialGradient(fx, fy, 0, fx, fy, Math.max(width, height) * 0.35);
+      fog.addColorStop(0, 'rgba(190,192,196,.16)'); fog.addColorStop(1, 'rgba(190,192,196,0)');
+      ctx.fillStyle = fog; ctx.fillRect(0, 0, width, height);
+    }
+    ctx.restore();
+  }
+  function drawWorld(delta) {
+    if (worldKind === 'gray') {
+      grayField(0, width);
+      for (const p of particles) {
+        p.y -= p.speed * 3 * delta; p.x += Math.sin(elapsed * 0.2 + p.phase) * 0.15;
+        if (p.y < -5) p.y = height + 5;
+        ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+        ctx.fillStyle = 'rgba(220,222,226,.25)'; ctx.fill();
+      }
+      return;
+    }
+    const white = worldKind === 'white';
+    ctx.fillStyle = white ? '#fff' : '#000';
+    ctx.fillRect(0, 0, width, height);
+    const br = 0.5 + 0.5 * Math.sin(elapsed * (white ? 1.1 : 0.7));
+    const gl = ctx.createRadialGradient(width / 2, white ? 0 : height, 0, width / 2, white ? 0 : height, height * 0.9);
+    gl.addColorStop(0, white ? `rgba(255,222,140,${0.25 + br * 0.15})` : `rgba(110,10,30,${0.2 + br * 0.12})`);
+    gl.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.fillStyle = gl; ctx.fillRect(0, 0, width, height);
+    for (const p of particles) {
+      p.y += (white ? -1 : 1) * p.speed * (white ? 34 : 22) * delta;
+      p.x += Math.sin(elapsed * 0.6 + p.phase) * 0.25;
+      if (p.y > height + 5) p.y = -5;
+      if (p.y < -5) p.y = height + 5;
+      ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+      ctx.fillStyle = white ? 'rgba(255,200,90,.5)' : 'rgba(110,110,125,.4)';
+      ctx.fill();
+    }
+  }
+
+  function draw(now) {
+    const delta = Math.min(0.05, (now - lastTime) / 1000);
+    lastTime = now; elapsed += delta;
+    if (!(width > 0 && height > 0)) { requestAnimationFrame(draw); return; }
+    if (mode === 'world') { drawWorld(delta); requestAnimationFrame(draw); return; }
+
+    const hr = radius();
+    if (mode === 'leaving') {
+      leaveT += delta;
+      heartY += -leaveDir * height * (0.12 + leaveT * 0.45) * delta;
+    } else if (held) {
+      driftVelocity = 0;
+      offsetY += -((heartX / width - 0.5) * 2) * height * 0.04 * delta;
+      offsetY = clamp(offsetY, -height, height);
+      heartX += (pointerX + offsetX - heartX) * Math.min(1, delta * 9);
+      heartY += (pointerY + offsetY - heartY) * Math.min(1, delta * 9);
+    } else {
+      const side = (heartX / width - 0.5) * 2;
+      const target = -side * height * 0.035;
+      driftVelocity += (target - driftVelocity) * (1 - Math.exp(-delta * 1.8));
+      heartY += driftVelocity * delta;
+    }
+    heartX = clamp(heartX, hr, width - hr);
+    if (mode === 'hub') {
+      heartY = clamp(heartY, hr * 1.2, height - hr * 1.2);
+      // у кутку серце провалюється далі: вгору — у біле, вниз — у чорне
+      const inWhite = heartX - hr >= width / 2 && heartY <= hr * 1.2 + 10;
+      const inBlack = heartX + hr <= width / 2 && heartY >= height - hr * 1.2 - 10;
+      corner = (inWhite || inBlack) ? corner + delta : Math.max(0, corner - delta * 2);
+      if (corner > 1.4 && open < 0.2) { mode = 'leaving'; leaveDir = inWhite ? 1 : -1; leaveT = 0; held = true; }
+      else if (open > 0.97) { mode = 'leaving'; leaveDir = 0; leaveT = 0; held = true; }
+    }
+
+    heldAmount += ((held ? 1 : 0) - heldAmount) * Math.min(1, delta * 4);
+    const centered = held && Math.abs(heartX / width - 0.5) < 0.05;
+    centerTime = centered ? centerTime + delta : Math.max(0, centerTime - delta * 2);
+    const progress = clamp((centerTime - 10) / 10, 0, 1);
+    const eased = progress * progress * progress * (progress * (progress * 6 - 15) + 10);
+    open += (eased - open) * Math.min(1, delta * 0.4);
+
+    // висота серця (−1 низ … 1 верх)
+    const topLimit = hr * 1.2, bottomLimit = height - topLimit, mid = height / 2;
+    const targetLift = heartY <= mid ? (mid - heartY) / (mid - topLimit) : -(heartY - mid) / (bottomLimit - mid);
+    lift = clamp(targetLift, -1, 1);
+
+    const heightT = (lift + 1) / 2;
+    const bpm = lerp(lerp(46, 92, heightT), 40, open);
+    if (held || heldAmount > 0.05) beatPhase += (delta * bpm) / 60 * heldAmount;
+    if (beatPhase >= 1) { beatPhase -= 1; secondBeat = false; }
+    if (held && !secondBeat && beatPhase < 0.1 && beatPhase > 0) {
+      secondBeat = true;
+      thump(lerp(55, 105, heightT), 0.5 * (1 - open * 0.5));
+    }
+    if (held && beatPhase > 0.22 && beatPhase < 0.3 && secondBeat === true) {
+      secondBeat = false;
+      thump(lerp(48, 90, heightT), 0.3 * (1 - open * 0.5));
+    }
+    if (droneGain) {
+      const tg = soundEnabled ? open * 0.05 : 0;
+      droneGain.gain.value += (tg - droneGain.gain.value) * 0.05;
+    }
+    const beat = heldAmount * (Math.exp(-Math.pow((beatPhase - 0.03) / 0.06, 2)) + 0.6 * Math.exp(-Math.pow((beatPhase - 0.25) / 0.06, 2)));
+
+    const oe = open * open * (3 - 2 * open);
+    const blackEdge = (width / 2) * (1 - oe);
+    const whiteEdge = (width / 2) * (1 + oe);
+    // тон екрана залежить і від сторони, і від висоти: біле — вгорі праворуч, чорне — внизу ліворуч
+    const sideScore = clamp((heartX - width / 2) / hr, -1, 1);
+    const targetTone = clamp(0.6 * sideScore + 0.6 * lift, -1, 1);
+    tone += (targetTone - tone) * Math.min(1, delta * 2);
+    const wv = Math.round(255 * Math.pow(1 + Math.min(tone, 0), 1.2));
+    const bv = Math.round(255 * Math.pow(Math.max(tone, 0), 1.2));
+
+    ctx.fillStyle = '#000';
+    ctx.fillRect(0, 0, width, height);
+    if (open > 0.01) grayField(blackEdge, whiteEdge);
+
+    ctx.fillStyle = `rgb(${bv},${bv},${bv})`;
+    ctx.fillRect(0, 0, Math.ceil(blackEdge) + 1, height);
+    ctx.fillStyle = `rgb(${wv},${wv},${wv})`;
+    ctx.fillRect(Math.floor(whiteEdge) - 1, 0, width - whiteEdge + 2, height);
+
+    if (open > 0.01) {
+      const fw = 70 + oe * 160;
+      const shade = (x0, x1, c) => {
+        const e = ctx.createLinearGradient(x0, 0, x1, 0), col = `${c},${c},${c}`;
+        e.addColorStop(0, `rgba(${col},1)`); e.addColorStop(0.35, `rgba(${col},.45)`); e.addColorStop(1, `rgba(${col},0)`);
+        ctx.fillStyle = e; ctx.fillRect(Math.min(x0, x1), 0, fw, height);
+      };
+      shade(blackEdge, blackEdge + fw, bv);
+      shade(whiteEdge, whiteEdge - fw, wv);
+      const k = Math.sin(Math.min(1, open) * Math.PI);
+      const spill = ctx.createRadialGradient(width / 2, height / 2, 0, width / 2, height / 2, Math.max(width, height) * 0.6);
+      spill.addColorStop(0, `rgba(235,238,245,${0.3 * k})`); spill.addColorStop(1, 'rgba(235,238,245,0)');
+      ctx.fillStyle = spill; ctx.fillRect(blackEdge, 0, whiteEdge - blackEdge, height);
+      ctx.fillStyle = `rgba(255,255,255,${0.5 * (1 - oe)})`;
+      ctx.fillRect(blackEdge, 0, 1, height); ctx.fillRect(whiteEdge - 1, 0, 1, height);
+    }
+
+    for (const p of particles) {
+      const zone = p.x < blackEdge ? 0 : p.x > whiteEdge ? 2 : 1;
+      if (zone === 0) { p.y += p.speed * 18 * delta; p.x += Math.sin(elapsed * 0.5 + p.phase) * 0.1; }
+      else if (zone === 2) { p.y -= p.speed * 28 * delta; p.x += Math.sin(elapsed * 0.7 + p.phase) * 0.2; }
+      else { p.y -= p.speed * 3 * delta; p.x += Math.sin(elapsed * 0.2 + p.phase) * 0.15; }
+      if (p.y > height + 5) p.y = -5;
+      if (p.y < -5) p.y = height + 5;
+      if (p.x < 0) p.x = width;
+      if (p.x > width) p.x = 0;
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.r * (zone === 2 ? 1.2 : 1), 0, Math.PI * 2);
+      ctx.fillStyle = zone === 0 ? 'rgba(70,70,80,.35)' : zone === 2 ? 'rgba(255,226,150,.45)' : 'rgba(220,222,226,.25)';
+      ctx.fill();
+    }
+
+    const vg = ctx.createRadialGradient(width / 2, height / 2, Math.min(width, height) * 0.3, width / 2, height / 2, Math.max(width, height) * 0.75);
+    vg.addColorStop(0, 'rgba(0,0,0,0)'); vg.addColorStop(1, `rgba(0,0,0,${open * 0.3})`);
+    ctx.fillStyle = vg; ctx.fillRect(0, 0, width, height);
+
+    // серце
+    const grayLeave = mode === 'leaving' && leaveDir === 0 ? clamp(leaveT / 1.8, 0, 1) : 0;
+    const size = hr * (1 + 0.2 * beat) * (1 - (1 - heldAmount) * 0.12) * (1 - grayLeave * 0.7);
+    const glowColor = open > 0.5 ? '200,202,206' : lift > 0 ? '255,70,60' : '140,20,40';
+    const glowAlpha = (0.25 + heldAmount * 0.35) * (0.6 + ((lift + 1) / 2) * 0.6) * (1 + beat * 0.8);
+    const glow = ctx.createRadialGradient(heartX, heartY, 0, heartX, heartY, size * (3 + beat * 2));
+    glow.addColorStop(0, `rgba(${glowColor},${glowAlpha})`); glow.addColorStop(1, `rgba(${glowColor},0)`);
+    ctx.fillStyle = glow;
+    ctx.fillRect(heartX - size * 6, heartY - size * 6, size * 12, size * 12);
+
+    const hb = clamp((lift + 1) / 2, 0, 1);
+    const hc = [lerp(110, 255, hb), lerp(14, 16, hb), lerp(28, 36, hb)].map(Math.round);
+    ctx.save();
+    ctx.globalAlpha = lerp(0.8, 1, heldAmount) * lerp(0.8, 1, lift > 0 ? lift : 0) * (1 - open * 0.2) * (1 - grayLeave);
+    heartPath(heartX, heartY + size * 0.05, size);
+    const hg = ctx.createRadialGradient(heartX - size * 0.3, heartY - size * 0.4, size * 0.1, heartX, heartY, size * 1.2);
+    const k = (0.25 + beat * 0.15) * hb;
+    hg.addColorStop(0, `rgb(${lerp(hc[0], 255, k)},${lerp(hc[1], 255, k)},${lerp(hc[2], 255, k)})`);
+    hg.addColorStop(1, `rgb(${hc.join(',')})`);
+    ctx.fillStyle = hg; ctx.fill();
+    ctx.restore();
+
+    if (mode === 'leaving') {
+      const a = clamp(leaveT / 2.6, 0, 1), e = a * a * (3 - 2 * a);
+      if (leaveDir !== 0) { ctx.fillStyle = leaveDir > 0 ? `rgba(255,255,255,${e})` : `rgba(0,0,0,${e})`; ctx.fillRect(0, 0, width, height); }
+      if (leaveT > (leaveDir === 0 ? 1.8 : 2.8)) enterWorld(leaveDir > 0 ? 'white' : leaveDir < 0 ? 'black' : 'gray');
+    }
+    requestAnimationFrame(draw);
+  }
+
+  window.addEventListener('resize', resize);
+  resize();
+  requestAnimationFrame(draw);
+})();
+</script>
+</body>
+</html>
